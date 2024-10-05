@@ -55,6 +55,12 @@ export default function Home({ route }) {
     setScanned(true);
     const today = new Date().toISOString().split('T')[0];
 
+    if (data !== today) {
+      Alert.alert('Invalid QR Code', 'The QR code does not match today\'s date.');
+      setScanned(false);
+      return;
+    }
+
     const docRef = doc(db, 'students', email);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {

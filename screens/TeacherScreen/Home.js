@@ -35,8 +35,8 @@ export default function TeacherHome({ navigation }) {
   };
 
   const generateQRCode = () => {
-    const value = email ? `${email}|${section}` : `default-${Math.random().toString(36).substring(7)}`;
-    setQrValue(value);
+    const today = new Date().toISOString().split('T')[0];
+    setQrValue(today);
   };
 
   const handleLogout = async () => {
