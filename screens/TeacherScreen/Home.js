@@ -4,6 +4,7 @@ import { TextInput, Button, Text, Card, Title, Paragraph } from 'react-native-pa
 import QRCode from 'react-native-qrcode-svg';
 import { db, auth } from '../FirebaseConfig';
 import { signOut } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function TeacherHome({ navigation }) {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ export default function TeacherHome({ navigation }) {
     if (email && password && name && section) {
       try {
         const today = new Date().toISOString().split('T')[0];
-        await db.collection('students').doc(email).set({
+        await setDoc(doc(db, 'students', email), {
           password,
           name,
           section,
@@ -99,7 +100,6 @@ export default function TeacherHome({ navigation }) {
             <View style={styles.qrContainer}>
               <Text>Scan this QR code:</Text>
               <QRCode value={qrValue} size={200} />
-              <Text>{qrValue}</Text>
             </View>
           ) : null}
         </Card.Content>
