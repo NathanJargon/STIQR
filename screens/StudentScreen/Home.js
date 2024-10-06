@@ -10,6 +10,17 @@ import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
+const formatDateTime = (isoString) => {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 export default function Home({ route }) {
   const email = route.params?.email || 'test@gmail.com';
   const [hasPermission, setHasPermission] = useState(null);
@@ -19,6 +30,7 @@ export default function Home({ route }) {
   const [cameraRef, setCameraRef] = useState(null);
   const [studentName, setStudentName] = useState('');
   const [scanCount, setScanCount] = useState(0);
+  const [studentData, setStudentData] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -34,11 +46,13 @@ export default function Home({ route }) {
       const docRef = doc(db, 'students', email);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const studentData = docSnap.data();
-        setTally(studentData.tally);
-        setStudentName(studentData.name);
-        const dates = studentData.classDates.reduce((acc, date) => {
-          acc[date] = { marked: true, dotColor: 'green' };
+        const data = docSnap.data();
+        setStudentData(data);
+        setTally(data.tally);
+        setStudentName(data.name);
+        const dates = data.classDates.reduce((acc, date) => {
+          const dateOnly = date.split('T')[0];
+          acc[dateOnly] = { marked: true, dotColor: 'green' };
           return acc;
         }, {});
         setMarkedDates(dates);
@@ -53,7 +67,8 @@ export default function Home({ route }) {
 
   const handleBarCodeScanned = async ({ type, data }) => {
     setScanned(true);
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toISOString();
+    const today = now.split('T')[0];
 
     if (data !== today) {
       Alert.alert('Invalid QR Code', 'The QR code does not match today\'s date.');
@@ -70,7 +85,7 @@ export default function Home({ route }) {
     }
 
     const studentData = docSnap.data();
-    const alreadyScannedToday = studentData.classDates.includes(today);
+    const alreadyScannedToday = studentData.classDates.some(date => date.startsWith(today));
 
     try {
       if (alreadyScannedToday) {
@@ -78,7 +93,7 @@ export default function Home({ route }) {
         if (scanCount >= 1) {
           await updateDoc(docRef, {
             tally: tally - 1,
-            classDates: arrayRemove(today),
+            classDates: arrayRemove(now),
           });
           setTally(tally - 1);
           setMarkedDates((prevDates) => {
@@ -88,21 +103,21 @@ export default function Home({ route }) {
           });
           Alert.alert(
             'Scan Warning',
-            `You have already scanned for today. Tally has been decreased.\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally - 1}\nDate: ${today}`,
+            `You have already scanned for today. Tally has been decreased.\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally - 1}\nDate: ${formatDateTime(now)}`,
             [{ text: 'OK', onPress: () => setScanned(false) }]
           );
           setScanCount(0); // Reset scan count after decrementing tally
         } else {
           Alert.alert(
             'Scan Warning',
-            `You have already scanned for today. Scanning again will decrease your tally.\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally}\nDate: ${today}`,
+            `You have already scanned for today. Scanning again will decrease your tally.\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally}\nDate: ${formatDateTime(now)}`,
             [{ text: 'OK', onPress: () => setScanned(false) }]
           );
         }
       } else {
         await updateDoc(docRef, {
           tally: tally + 1,
-          classDates: arrayUnion(today),
+          classDates: arrayUnion(now),
         });
         setTally(tally + 1);
         setMarkedDates({
@@ -111,7 +126,7 @@ export default function Home({ route }) {
         });
         Alert.alert(
           'Scan Successful',
-          `Student Information:\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally + 1}\nDate: ${today}`,
+          `Student Information:\n\nEmail: ${email}\nName: ${studentName}\nTally: ${tally + 1}\nDate: ${formatDateTime(now)}`,
           [{ text: 'Present', onPress: () => setScanned(false) }]
         );
         setScanCount(0); // Reset scan count after successful scan
@@ -140,7 +155,16 @@ export default function Home({ route }) {
   }
 
   const handleDayPress = (day) => {
-    Alert.alert('Date Information', `Date: ${day.dateString}`);
+    if (!studentData) {
+      Alert.alert('Date Information', 'No student data available.');
+      return;
+    }
+    const selectedDate = studentData.classDates.find(date => date.split('T')[0] === day.dateString);
+    if (selectedDate) {
+      Alert.alert('Date Information', `Date: ${formatDateTime(selectedDate)}`);
+    } else {
+      Alert.alert('Date Information', 'Have not been present at this day.');
+    }
   };
 
   return (

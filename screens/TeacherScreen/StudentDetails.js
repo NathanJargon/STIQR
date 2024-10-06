@@ -7,6 +7,17 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
+const formatDateTime = (isoString) => {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 export default function StudentDetails({ route, navigation }) {
   const { email } = route.params;
   const [student, setStudent] = useState(null);
@@ -20,7 +31,8 @@ export default function StudentDetails({ route, navigation }) {
         const studentData = docSnap.data();
         setStudent(studentData);
         const dates = studentData.classDates.reduce((acc, date) => {
-          acc[date] = { marked: true, dotColor: 'green' };
+          const dateOnly = date.split('T')[0];
+          acc[dateOnly] = { marked: true, dotColor: 'green' };
           return acc;
         }, {});
         setMarkedDates(dates);
@@ -33,7 +45,16 @@ export default function StudentDetails({ route, navigation }) {
   }, [email]);
 
   const handleDayPress = (day) => {
-    Alert.alert('Date Information', `Date: ${day.dateString}`);
+    if (!student) {
+      Alert.alert('Date Information', 'No student data available.');
+      return;
+    }
+    const selectedDate = student.classDates.find(date => date.split('T')[0] === day.dateString);
+    if (selectedDate) {
+      Alert.alert('Date Information', `Date: ${formatDateTime(selectedDate)}`);
+    } else {
+      Alert.alert('Date Information', 'Have not been present at this day.');
+    }
   };
 
   if (!student) {
