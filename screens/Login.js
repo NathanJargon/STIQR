@@ -3,7 +3,8 @@ import { StyleSheet, Text, TextInput, View, Alert, Dimensions, TouchableOpacity 
 import { Button } from 'react-native-paper';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
-import { auth, db } from './FirebaseConfig';
+import { db } from './FirebaseConfig';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,6 +12,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [domain, setDomain] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
   const handleLogin = async () => {
@@ -30,7 +32,7 @@ export default function Login() {
           if (domain === 'student') {
             navigation.navigate('StudentHome', { email });
           } else {
-            navigation.navigate('TeacherHome');
+            navigation.navigate('TeacherHome', { email });
           }
         } else {
           Alert.alert('Invalid password');
@@ -78,16 +80,26 @@ export default function Login() {
               value={email}
               onChangeText={setEmail}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
+                <Icon name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
             <Button mode="contained" onPress={handleLogin} style={styles.loginButton}>
               Login
             </Button>
+            {domain === 'student' && (
+              <TouchableOpacity onPress={() => navigation.navigate('StudentSignup')} style={styles.signUpButton}>
+                <Text style={styles.signUpButtonText}>Don't have an account? Sign Up</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
       </View>
@@ -108,13 +120,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: height * 0.01,
     position: 'absolute',
-    top: height * 0.2,
+    top: height * 0.1,
   },
   description: {
     fontSize: width * 0.04,
     marginBottom: height * 0.03,
     position: 'absolute',
-    top: height * 0.27,
+    top: height * 0.16,
   },
   bottomContainer: {
     position: 'absolute',
@@ -129,6 +141,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginVertical: height * 0.01,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: width * 0.03,
+  },
+  showPasswordButton: {
+    padding: width * 0.03,
   },
   domainText: {
     fontSize: width * 0.05,
@@ -158,6 +186,13 @@ const styles = StyleSheet.create({
   loginButton: {
     width: '100%',
     padding: width * 0.03,
+  },
+  signUpButton: {
+    marginTop: height * 0.02,
+  },
+  signUpButtonText: {
+    fontSize: width * 0.04,
+    color: '#007BFF',
   },
   backButton: {
     alignSelf: 'flex-start',
