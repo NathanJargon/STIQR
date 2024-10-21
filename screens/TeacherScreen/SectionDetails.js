@@ -3,11 +3,7 @@ import { StyleSheet, View, FlatList, Alert } from 'react-native';
 import { Card, Title, Paragraph, Button, IconButton } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../FirebaseConfig';
-import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import RNHTMLtoPDF from 'react-native-html-to-pdf'; // Import the library for PDF
-import { Document, Packer, Paragraph as DocxParagraph, TextRun } from 'docx'; // Import the library for DOCX
-import ExcelJS from 'exceljs'; // Import the library for Excel
-import RNFS from 'react-native-fs'; // Import the library for file system operations
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 export default function SectionDetails({ route, navigation }) {
   const { sectionId, sectionName } = route.params;
@@ -17,10 +13,15 @@ export default function SectionDetails({ route, navigation }) {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const snapshot = await getDocs(collection(db, 'students'));
-      const studentsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setAllStudents(studentsList);
-      setStudents(studentsList.filter(student => student.section === sectionId));
+      try {
+        const snapshot = await getDocs(collection(db, 'students'));
+        const studentsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllStudents(studentsList);
+        setStudents(studentsList.filter(student => student.section === sectionId));
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        Alert.alert('Error', 'Failed to fetch students');
+      }
     };
 
     fetchStudents();
@@ -38,6 +39,7 @@ export default function SectionDetails({ route, navigation }) {
       setSelectedStudentId('');
       Alert.alert('Success', 'Student added to folder');
     } catch (error) {
+      console.error("Error adding student to section:", error);
       Alert.alert('Error', error.message);
     }
   };
@@ -61,6 +63,7 @@ export default function SectionDetails({ route, navigation }) {
               setStudents(students.filter(student => student.id !== studentId));
               Alert.alert('Success', 'Student removed from folder');
             } catch (error) {
+              console.error("Error removing student from section:", error);
               Alert.alert('Error', error.message);
             }
           }
@@ -68,110 +71,6 @@ export default function SectionDetails({ route, navigation }) {
       ],
       { cancelable: false }
     );
-  };
-
-  const generatePDF = async () => {
-    let htmlContent = `
-      <h1>${sectionName}</h1>
-      <table border="1" style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Created At</th>
-          <th>Tally</th>
-        </tr>
-    `;
-
-    students.forEach(student => {
-      htmlContent += `
-        <tr>
-          <td>${student.name}</td>
-          <td>${student.id}</td>
-          <td>${student.createdAt}</td>
-          <td>${student.tally}</td>
-        </tr>
-      `;
-    });
-
-    htmlContent += `</table>`;
-
-    try {
-      const options = {
-        html: htmlContent,
-        fileName: `${sectionName}_students`,
-        directory: 'Documents',
-      };
-
-      const file = await RNHTMLtoPDF.convert(options);
-      Alert.alert('Success', `PDF generated at ${file.filePath}`);
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    }
-  };
-
-  const generateDOCX = async () => {
-    const doc = new Document();
-    doc.addSection({
-      children: [
-        new DocxParagraph({
-          children: [
-            new TextRun({
-              text: sectionName,
-              bold: true,
-              size: 24,
-            }),
-          ],
-        }),
-        ...students.map(student => new DocxParagraph({
-          children: [
-            new TextRun(`Name: ${student.name}`),
-            new TextRun(`Email: ${student.id}`),
-            new TextRun(`Created At: ${student.createdAt}`),
-            new TextRun(`Tally: ${student.tally}`),
-          ],
-        })),
-      ],
-    });
-
-    try {
-      const packer = new Packer();
-      const buffer = await packer.toBuffer(doc);
-      const filePath = `${RNFS.DocumentDirectoryPath}/${sectionName}_students.docx`;
-      await RNFS.writeFile(filePath, buffer, 'base64');
-      Alert.alert('Success', `DOCX generated at ${filePath}`);
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    }
-  };
-
-  const generateExcel = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(sectionName);
-
-    worksheet.columns = [
-      { header: 'Name', key: 'name', width: 30 },
-      { header: 'Email', key: 'email', width: 30 },
-      { header: 'Created At', key: 'createdAt', width: 30 },
-      { header: 'Tally', key: 'tally', width: 10 },
-    ];
-
-    students.forEach(student => {
-      worksheet.addRow({
-        name: student.name,
-        email: student.id,
-        createdAt: student.createdAt,
-        tally: student.tally,
-      });
-    });
-
-    try {
-      const buffer = await workbook.xlsx.writeBuffer();
-      const filePath = `${RNFS.DocumentDirectoryPath}/${sectionName}_students.xlsx`;
-      await RNFS.writeFile(filePath, buffer, 'base64');
-      Alert.alert('Success', `Excel file generated at ${filePath}`);
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    }
   };
 
   return (
@@ -212,14 +111,8 @@ export default function SectionDetails({ route, navigation }) {
       <Button mode="contained" onPress={addStudentToSection} style={styles.button}>
         Add Student
       </Button>
-      <Button mode="contained" onPress={generatePDF} style={styles.button}>
-        Generate PDF
-      </Button>
-      <Button mode="contained" onPress={generateDOCX} style={styles.button}>
-        Generate DOCX
-      </Button>
-      <Button mode="contained" onPress={generateExcel} style={styles.button}>
-        Generate Excel
+      <Button mode="contained" onPress={() => navigation.navigate('DocumentGeneration', { sectionId, sectionName, students })} style={styles.button}>
+        Generate Documents
       </Button>
       <Button mode="contained" onPress={() => navigation.goBack()} style={styles.button}>
         Back to Folders

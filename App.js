@@ -12,6 +12,7 @@ import SectionDetails from './screens/TeacherScreen/SectionDetails';
 import StudentSignup from './screens/StudentScreen/StudentSignup';
 import Scanner from './screens/StudentScreen/Scanner';
 import CalendarScreen from './screens/StudentScreen/CalendarScreen'; 
+import DocumentGeneration from './screens/StudentScreen/DocumentGeneration';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export default function App() {
         <Stack.Screen name="StudentSignup" component={StudentSignup} />
         <Stack.Screen name="Scanner" component={Scanner} />
         <Stack.Screen name="CalendarScreen" component={CalendarScreen} />
+        <Stack.Screen name="DocumentGeneration" component={DocumentGeneration} />
       </Stack.Navigator>
     </NavigationContainer>
   );
