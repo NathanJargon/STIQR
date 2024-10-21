@@ -33,3 +33,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# @end expo-cli
+# Ignore .gradle directory
+android/.gradle/
