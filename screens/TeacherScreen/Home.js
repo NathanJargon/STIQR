@@ -92,6 +92,9 @@ export default function TeacherHome({ navigation, route }) {
           <Button mode="contained" onPress={() => navigation.navigate('StudentList')} style={styles.button}>
             Student Records
           </Button>
+          <Button mode="contained" onPress={() => navigation.navigate('FAQ')} style={styles.button}>
+            View FAQ
+          </Button>
           <Button mode="contained" onPress={handleLogout} style={[styles.button, styles.logoutButton]}>
             Logout
           </Button>

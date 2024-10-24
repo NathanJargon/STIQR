@@ -73,6 +73,65 @@ export default function SectionDetails({ route, navigation }) {
     );
   };
 
+  const resetAllTally = async () => {
+    Alert.alert(
+      "Confirm Reset",
+      "Are you sure you want to reset the tally for all students in this section?",
+      [
+        {
+          text: "No",
+          onPress: () => console.log("Reset cancelled"),
+          style: "cancel"
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              const resetPromises = students.map(student => {
+                const studentDocRef = doc(db, 'students', student.id);
+                return updateDoc(studentDocRef, { tally: 0 });
+              });
+              await Promise.all(resetPromises);
+              setStudents(students.map(student => ({ ...student, tally: 0 })));
+              Alert.alert('Success', 'All tallies reset successfully');
+            } catch (error) {
+              Alert.alert('Error', error.message);
+            }
+          }
+        }
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const resetUserTally = async (studentId) => {
+    Alert.alert(
+      "Confirm Reset",
+      "Are you sure you want to reset the tally for this student?",
+      [
+        {
+          text: "No",
+          onPress: () => console.log("Reset cancelled"),
+          style: "cancel"
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              const studentDocRef = doc(db, 'students', studentId);
+              await updateDoc(studentDocRef, { tally: 0 });
+              setStudents(students.map(student => student.id === studentId ? { ...student, tally: 0 } : student));
+              Alert.alert('Success', 'Tally reset successfully');
+            } catch (error) {
+              Alert.alert('Error', error.message);
+            }
+          }
+        }
+      ],
+      { cancelable: false }
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Title style={styles.sectionName}>{sectionName}</Title>
@@ -84,7 +143,7 @@ export default function SectionDetails({ route, navigation }) {
             <Card.Content>
               <View style={styles.cardContent}>
                 <View>
-                  <Title>{item.name}</Title>
+                  <Title onPress={() => navigation.navigate('StudentDetails', { studentId: item.id })}>{item.name}</Title>
                   <Paragraph>Email: {item.id}</Paragraph>
                   <Paragraph>Created At: {item.createdAt}</Paragraph>
                   <Paragraph>Tally: {item.tally}</Paragraph>
@@ -94,6 +153,13 @@ export default function SectionDetails({ route, navigation }) {
                   onPress={() => removeStudentFromSection(item.id)}
                 />
               </View>
+              <Button
+                mode="contained"
+                onPress={() => resetUserTally(item.id)}
+                style={styles.resetUserButton}
+              >
+                Reset Tally
+              </Button>
             </Card.Content>
           </Card>
         )}
@@ -111,8 +177,11 @@ export default function SectionDetails({ route, navigation }) {
       <Button mode="contained" onPress={addStudentToSection} style={styles.button}>
         Add Student
       </Button>
-      <Button mode="contained" onPress={() => navigation.navigate('DocumentGeneration', { sectionId, sectionName, students })} style={styles.button}>
-        Generate Documents
+      <Button mode="contained" onPress={resetAllTally} style={[styles.button, styles.resetAllButton]}>
+        Reset All Tally
+      </Button>
+      <Button mode="contained" onPress={() => navigation.navigate('DocumentImport', { sectionId, sectionName, students })} style={styles.button}>
+        Import Students using Excel
       </Button>
       <Button mode="contained" onPress={() => navigation.goBack()} style={styles.button}>
         Back to Folders
@@ -141,6 +210,13 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
+  },
+  resetAllButton: {
+    backgroundColor: 'red', // Change the color of the "Reset All Tally" button
+  },
+  resetUserButton: {
+    backgroundColor: '#6200ee', // Change the color of the "Reset Tally" button
+    marginTop: 10, // Add margin to the top to separate it from the content above
   },
   input: {
     marginBottom: 10,

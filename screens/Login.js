@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, Alert, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, TextInput, View, Alert, Dimensions, TouchableOpacity, Keyboard } from 'react-native';
 import { Button } from 'react-native-paper';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -13,7 +13,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [domain, setDomain] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const handleLogin = async () => {
     if (!domain) {
@@ -47,8 +62,8 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>STIQR</Text>
-      <Text style={styles.description}>An STI QR system</Text>
+      <Text style={[styles.header, keyboardVisible && styles.hidden]}>STIQR</Text>
+      <Text style={[styles.description, keyboardVisible && styles.hidden]}>An STI QR system</Text>
       <View style={styles.bottomContainer}>
         {!domain ? (
           <>
@@ -127,6 +142,9 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.03,
     position: 'absolute',
     top: height * 0.16,
+  },
+  hidden: {
+    opacity: 0,
   },
   bottomContainer: {
     position: 'absolute',

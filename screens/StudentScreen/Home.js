@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Alert, Dimensions, TouchableOpacity, FlatList, Modal, Image, ActivityIndicator } from 'react-native';
-import { Text, Button, Card, Avatar, IconButton, Title, Paragraph } from 'react-native-paper';
+import { Text, Button, Card, Avatar, IconButton } from 'react-native-paper';
 import { db, auth, storage } from '../FirebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -22,6 +22,8 @@ export default function Home({ route }) {
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [scheduleFile, setScheduleFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [fullImageModalVisible, setFullImageModalVisible] = useState(false); // State for full image modal
+  const [originalRatio, setOriginalRatio] = useState(true); // State to toggle between original ratio and portrait mode
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -127,6 +129,10 @@ export default function Home({ route }) {
     }
   };
 
+  const handleImagePress = () => {
+    setFullImageModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
@@ -144,7 +150,10 @@ export default function Home({ route }) {
           </View>
           {uploading && <ActivityIndicator />}
           {scheduleFile && (
-            <Image source={{ uri: scheduleFile }} style={styles.scheduleImage} />
+            <TouchableOpacity onPress={handleImagePress} style={styles.imageContainer}>
+              <Image source={{ uri: scheduleFile }} style={styles.scheduleImage} />
+              <Text style={styles.imageText}>Click for Full Picture</Text>
+            </TouchableOpacity>
           )}
           <Button mode="contained" onPress={handleImageUpload} style={styles.button}>
             Upload Schedule File
@@ -154,6 +163,9 @@ export default function Home({ route }) {
           </Button>
           <Button mode="contained" onPress={() => navigation.navigate('CalendarScreen', { email })} style={styles.button}>
             View Calendar
+          </Button>
+          <Button mode="contained" onPress={() => navigation.navigate('FAQ')} style={styles.button}>
+            View FAQ
           </Button>
           <Button mode="contained" onPress={handleLogout} style={[styles.button, styles.logoutButton]}>
             Logout
@@ -184,6 +196,29 @@ export default function Home({ route }) {
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setAvatarModalVisible(!avatarModalVisible)}
+          >
+            <Text style={styles.textStyle}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={fullImageModalVisible}
+        onRequestClose={() => {
+          setFullImageModalVisible(!fullImageModalVisible);
+        }}
+      >
+        <View style={styles.fullImageModalView}>
+          <Image
+            source={{ uri: scheduleFile }}
+            style={styles.fullImagePortrait}
+            resizeMode="contain"
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setFullImageModalVisible(!fullImageModalVisible)}
           >
             <Text style={styles.textStyle}>Close</Text>
           </TouchableOpacity>
@@ -239,12 +274,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  fullImageModalView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
   closeButton: {
     backgroundColor: '#590de4',
     borderRadius: 10,
     padding: 10,
     elevation: 2,
-    marginTop: 20,
+    marginTop: height * 0.02,
+    marginBottom: height * 0.15,
   },
   textStyle: {
     color: 'white',
@@ -258,10 +300,29 @@ const styles = StyleSheet.create({
   avatarIcon: {
     margin: 10,
   },
+  imageContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
   scheduleImage: {
     width: '100%',
     height: 200,
-    marginTop: 10,
     borderRadius: 10,
+  },
+  imageText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#007BFF',
+  },
+  fullImageOriginal: {
+    width: '90%',
+    height: '90%',
+  },
+  fullImagePortrait: {
+    width: '100%',
+    height: '100%',
+  },
+  toggleButton: {
+    marginTop: 10,
   },
 });
